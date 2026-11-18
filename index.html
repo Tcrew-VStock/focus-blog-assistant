@@ -43,6 +43,13 @@
 /* prompt copy */
 .prompt-copy-box{margin-top:11px;padding:12px;border:1px dashed #3b2a52;border-radius:12px;background:linear-gradient(140deg,#151021,#100e19)}
 .prompt-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ai-open-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid #2b2340}
+.ai-open-label{flex:0 0 auto;font-size:10px;font-weight:800;letter-spacing:.8px;color:#b795d6;border:1px solid #3d2a55;background:#1c1229;border-radius:7px;padding:4px 7px;white-space:nowrap}
+.ai-open-links{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.ai-open{display:inline-flex;align-items:center;gap:4px;border:1px solid #3a3b4c;background:#16171f;color:#c9c8d8;border-radius:30px;padding:5px 11px;font-size:11.5px;font-weight:650;line-height:1.5;text-decoration:none;white-space:nowrap}
+.ai-open:hover{border-color:#a03ada;background:#231630;color:#f3d9ff}
+.ai-open i{font-style:normal;color:#9b7db5;font-size:10.5px}
+.ai-open:hover i{color:#d9a6ff}
 .btn.prompt-copy{background:linear-gradient(120deg,#3a1355,#251238);border-color:#7a34b3;color:#f3dcff;font-weight:750;box-shadow:0 7px 22px #7c1fd036}
 .btn.prompt-copy:hover{border-color:#b327ff;color:#fff;filter:brightness(1.12)}
 #promptCopyHint{margin-top:8px;line-height:1.6}
@@ -109,7 +116,8 @@
      <div class="actions" style="display:flex;gap:8px;margin-top:13px"><button class="btn primary" style="flex:1" id="runBtn">✦ 자료 조사 + 글 자동 작성</button><button class="btn" id="stopBtn" disabled>중단</button></div>
      <div class="helper" style="margin-top:10px">심층 조사는 여러 웹 자료를 탐색하므로 시간이 걸릴 수 있습니다. 조사 중에는 이 탭을 열어 두세요.</div>
      <div class="prompt-copy-box">
-      <div class="prompt-actions"><button class="btn prompt-copy" id="copyPromptBtn">⧉ 시세 포함 프롬프트 복사</button><button class="btn small ghost" id="previewPromptBtn">미리보기</button><a class="btn small ghost" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT 열기 ↗</a></div>
+      <div class="prompt-actions"><button class="btn prompt-copy" id="copyPromptBtn">⧉ 시세 포함 프롬프트 복사</button><button class="btn small ghost" id="previewPromptBtn">미리보기</button></div>
+     <div class="ai-open-row" id="aiOpenRow"><span class="ai-open-label">AI 바로가기</span><div class="ai-open-links"><a class="ai-open" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer" aria-label="ChatGPT 열기 (새 탭)">ChatGPT <i>↗</i></a><a class="ai-open" href="https://gemini.google.com/" target="_blank" rel="noopener noreferrer" aria-label="Gemini 열기 (새 탭)">Gemini <i>↗</i></a><a class="ai-open" href="https://claude.ai/" target="_blank" rel="noopener noreferrer" aria-label="Claude 열기 (새 탭)">Claude <i>↗</i></a><a class="ai-open" href="https://www.perplexity.ai/" target="_blank" rel="noopener noreferrer" aria-label="Perplexity 열기 (새 탭)">Perplexity <i>↗</i></a><a class="ai-open" href="https://grok.com/" target="_blank" rel="noopener noreferrer" aria-label="Grok 열기 (새 탭)">Grok <i>↗</i></a><a class="ai-open" href="https://wrtn.ai/" target="_blank" rel="noopener noreferrer" aria-label="뤼튼 열기 (새 탭)">뤼튼 <i>↗</i></a></div></div>
       <div class="helper" id="promptCopyHint">시세·차트 조회를 먼저 누르면 최신 수치까지 자동 포함됩니다.</div>
      </div>
     </div>
@@ -150,7 +158,7 @@
  </main>
 </section>
 </div>
-<div class="modal-back" id="promptModalBack"><div class="modal" style="width:min(760px,100%)"><div class="card-head" style="margin-bottom:10px"><h2 style="margin:0;font-size:17px">프롬프트 미리보기</h2><button class="btn small" id="promptModalClose">닫기</button></div><p class="helper" id="promptModalNote" style="margin:0 0 9px">아래 내용을 복사해 ChatGPT에 그대로 붙여넣으세요.</p><textarea class="control" id="promptModalText" readonly spellcheck="false"></textarea><div class="prompt-actions" style="margin-top:10px"><button class="btn primary small" id="promptModalSelect">전체 선택</button><button class="btn small" id="promptModalCopyAgain">다시 복사</button></div></div></div>
+<div class="modal-back" id="promptModalBack"><div class="modal" style="width:min(760px,100%)"><div class="card-head" style="margin-bottom:10px"><h2 style="margin:0;font-size:17px">프롬프트 미리보기</h2><button class="btn small" id="promptModalClose">닫기</button></div><p class="helper" id="promptModalNote" style="margin:0 0 9px">아래 내용을 복사해 ChatGPT·Gemini·Claude 등 원하는 AI에 그대로 붙여넣으세요.</p><textarea class="control" id="promptModalText" readonly spellcheck="false"></textarea><div class="prompt-actions" style="margin-top:10px"><button class="btn primary small" id="promptModalSelect">전체 선택</button><button class="btn small" id="promptModalCopyAgain">다시 복사</button></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
 (() => {
@@ -459,11 +467,11 @@ function promptReadyText(){const topic=$('topic').value.trim();if(!topic){toast(
 async function copyMarketPrompt(){
  const text=promptReadyText();if(!text)return;
  const ok=await writePromptClipboard(text);
- if(ok){const q=MKT.data&&MKT.data.quote;toast('프롬프트를 복사했습니다'+(q?' · '+q.name+' 시세 포함':'')+'. ChatGPT에 붙여넣으세요.')}
+ if(ok){const q=MKT.data&&MKT.data.quote;toast('프롬프트를 복사했습니다'+(q?' · '+q.name+' 시세 포함':'')+'. ChatGPT·Gemini·Claude 등 원하는 AI에 붙여넣으세요.')}
  else{openPromptModal(text,'브라우저가 자동 복사를 막았습니다. 아래 텍스트를 길게 눌러 전체 선택한 뒤 복사해 주세요.')}
 }
 if($('copyPromptBtn'))$('copyPromptBtn').onclick=copyMarketPrompt;
-if($('previewPromptBtn'))$('previewPromptBtn').onclick=()=>{const text=promptReadyText();if(text)openPromptModal(text,'미리보기입니다. 이 내용을 복사해 ChatGPT에 그대로 붙여넣어도 됩니다.')};
+if($('previewPromptBtn'))$('previewPromptBtn').onclick=()=>{const text=promptReadyText();if(text)openPromptModal(text,'미리보기입니다. 이 내용을 복사해 ChatGPT·Gemini·Claude 등에 그대로 붙여넣어도 됩니다.')};
 if($('promptModalClose'))$('promptModalClose').onclick=closePromptModal;
 if($('promptModalBack'))$('promptModalBack').onclick=e=>{if(e.target===$('promptModalBack'))closePromptModal()};
 if($('promptModalSelect'))$('promptModalSelect').onclick=()=>{const ta=$('promptModalText');ta.focus();ta.select();try{ta.setSelectionRange(0,ta.value.length)}catch(e){}toast('전체 선택했습니다. 복사(Ctrl+C 또는 길게 눌러 복사)해 주세요.')};
