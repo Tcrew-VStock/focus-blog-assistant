@@ -372,6 +372,8 @@ if($('marketIntTest'))$('marketIntTest').onclick=()=>mktTest(false);
 if(state.marketSymbol&&$('marketSymbol'))$('marketSymbol').value=state.marketSymbol;
 mktPill('ready','READY');
 mktTest(true);
+// 유지보수·검증용 훅(원본 상태를 바꾸지 않음): 프롬프트에 들어가는 시장데이터 블록을 직접 확인할 수 있게 한다.
+window.__focus={mktContextBlock,buildResearchPrompt,state:()=>state,marketApi};
 // restore brand, scope, connection
 if(state.brand.persona)$('brandPersona').value=state.brand.persona;if(state.brand.tone)$('brandTone').value=state.brand.tone;if(state.brand.rules)$('brandRules').value=state.brand.rules;if(state.scope)document.querySelectorAll('[data-scope]').forEach(b=>b.classList.toggle('active',state.scope.includes(b.dataset.scope)));updateConnection();refreshDashboard();
 })();
