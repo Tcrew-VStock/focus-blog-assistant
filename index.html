@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FOCUS | AI Blog Assistant</title>
+<style>
+:root{--bg:#0b1220;--panel:#121d30;--line:#26364d;--txt:#edf3fb;--muted:#9aabc1;--mint:#7de0c3;--blue:#8fb7ff}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(140deg,#0b1220,#101b2c);color:var(--txt);font:15px/1.6 system-ui,-apple-system,"Noto Sans KR",sans-serif}
+header{padding:25px max(18px,calc((100% - 1180px)/2));border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1{margin:0;font-size:25px;letter-spacing:2px}header small,.muted{color:var(--muted)}main{max-width:1180px;margin:24px auto;padding:0 16px;display:grid;grid-template-columns:340px 1fr;gap:18px}
+.panel{background:#121d30;border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}.panel h2{font-size:17px;margin:0 0 14px}
+label{display:block;color:#b9c8da;font-size:13px;margin:12px 0 5px}input,textarea,select{width:100%;background:#0b1423;color:var(--txt);border:1px solid #30435e;border-radius:9px;padding:11px;font:inherit}textarea{min-height:90px;resize:vertical}
+button,.btn{border:0;border-radius:9px;padding:10px 13px;background:#263b57;color:white;font-weight:650;cursor:pointer}button.primary{background:#147d70}button:disabled{opacity:.5;cursor:wait}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.hint{font-size:12px;color:var(--muted);margin-top:8px}
+#editor{background:#fff;color:#202938;border-radius:12px;min-height:620px;padding:25px;outline:none;line-height:1.85;overflow-wrap:anywhere}#editor h1,#editor h2{color:#17263a;letter-spacing:0}#editor img{max-width:100%;height:auto;border-radius:10px;display:block;margin:12px auto}#editor figure{margin:22px 0}#editor figcaption{font-size:12px;color:#64748b;text-align:center}
+#images{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.imgcard{background:#0b1423;border:1px solid var(--line);border-radius:10px;overflow:hidden}.imgcard img{width:100%;height:120px;object-fit:cover;display:block}.imgcard div{padding:8px;font-size:12px}.imgcard button{margin:0 8px 8px;width:calc(100% - 16px);font-size:12px}
+.note{border-left:3px solid var(--mint);padding:9px 12px;background:#102b30;color:#ccefe8;border-radius:4px;font-size:13px;margin:12px 0}
+@media(max-width:850px){main{grid-template-columns:1fr}#editor{min-height:480px}}
+</style></head>
+<body>
+<header><div><h1>FOCUS <span style="color:var(--mint)">BLOG</span></h1><small>경제·주식 블로그 반자동 작성실 · 설치/서버 없이 실행</small></div><div class="muted">v2.0 · 단일 HTML</div></header>
+<main>
+<aside class="panel">
+<h2>① 글 기획</h2>
+<label>주제 / 종목 / 핵심 키워드</label><input id="topic" placeholder="예: 삼성전자 실적 전망과 주가 변수">
+<label>글의 관점</label><select id="angle"><option>초보 투자자 눈높이 해설</option><option>실적과 밸류에이션 분석</option><option>오늘 시장 이슈 정리</option><option>산업·테마 분석</option><option>공시·뉴스 팩트체크</option></select>
+<label>기준일 (직접 확인한 날짜)</label><input id="date" type="date">
+<label>추가 요청</label><textarea id="extra" placeholder="분량, 꼭 다룰 내용, 제외할 내용 등"></textarea>
+<div class="actions"><button class="primary" id="promptBtn">글쓰기 프롬프트 만들기</button><button id="geminiBtn">Gemini 열기</button></div>
+<div class="hint">서버/API 키 없이 사용합니다. 프롬프트를 Gemini에 붙여 넣어 최신 검색·초안 생성을 진행합니다.</div>
+<div class="note">금융 수치·공시·주가를 자동으로 검증했다고 표시하지 않습니다. Gemini가 제시한 출처와 기준일을 직접 확인한 뒤 게시하세요.</div>
+<h2 style="margin-top:24px">② 실제 이미지 검색</h2>
+<label>검색어</label><input id="imageQuery" placeholder="예: semiconductor factory">
+<div class="actions"><button class="primary" id="searchBtn">Wikimedia 이미지 찾기</button></div>
+<div id="imageStatus" class="hint">검색 결과에서 이미지를 선택하면 오른쪽 글에 실제 이미지가 삽입됩니다.</div>
+<div id="images"></div>
+</aside>
+<section class="panel">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px"><h2 style="margin:0">③ 블로그 본문 편집</h2><span class="muted" style="font-size:12px">본문을 직접 클릭해 수정할 수 있어요</span></div>
+<div class="actions" style="margin:0 0 12px"><button id="copyBtn">서식 포함 복사</button><button id="htmlBtn">HTML 저장</button><button id="mdBtn">Markdown 저장</button><button id="clearBtn">초안 비우기</button></div>
+<article id="editor" contenteditable="true">
+<h1>블로그 제목을 입력하세요</h1>
+<p>왼쪽에서 주제를 입력하고 글쓰기 프롬프트를 만든 뒤 Gemini에서 생성한 글을 이곳에 붙여 넣으세요.</p>
+<h2>도입부</h2><p>시장 상황과 독자가 궁금해하는 핵심 이슈를 정리합니다.</p>
+<h2>핵심 내용</h2><p>확인된 자료와 기준일을 명시하고, 출처가 불분명한 숫자는 사용하지 않습니다.</p>
+<h2>투자자 관점에서 볼 점</h2><p>상승·하락 가능 요인과 확인해야 할 위험을 균형 있게 설명합니다.</p>
+<h2>마무리</h2><p>독자에게 생각을 묻는 질문과 관련 해시태그를 작성합니다.</p>
+</article>
+<p class="hint">이미지 검색은 Wikimedia Commons 공개 API를 사용합니다. 각 이미지의 라이선스·출처를 확인하고, 외부 이미지가 네이버 편집기에 붙지 않으면 내려받아 네이버에 직접 업로드하세요.</p>
+</section></main>
+<script>
+const $=id=>document.getElementById(id), editor=$('editor');
+$('date').value=new Date().toISOString().slice(0,10);
+function download(name,content,type){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([content],{type}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+$('promptBtn').onclick=async()=>{
+ const topic=$('topic').value.trim();if(!topic){alert('주제나 종목을 입력해 주세요.');return}
+ const prompt=`너는 경제·주식 전문 블로그 에디터다. 다음 주제로 네이버 블로그용 글 초안을 작성하라.\n주제: ${topic}\n관점: ${$('angle').value}\n기준일: ${$('date').value||'기준일 미지정'}\n추가 요청: ${$('extra').value}\n\n필수 원칙:\n- 최신 자료를 웹 검색해 확인하고, 확인한 사실마다 출처와 기준일을 표시한다.\n- 확인하지 못한 주가·시가총액·실적·환율·거래시간 수치는 절대 추정하지 말고 '확인 필요'로 표시한다.\n- 공시·실적은 DART/SEC, 주가·거래 데이터는 거래소 또는 신뢰할 수 있는 시세 제공처를 우선한다.\n- 제목, 도입부, H2 소제목 3~4개, 핵심 데이터 표, 개인 투자자 관점의 해석과 위험, 질문형 마무리, 해시태그를 포함한다.\n- 통계와 기사 내용 바로 뒤에 출처 및 기준일을 붙인다. 투자 권유처럼 단정하지 않는다.\n- 이미지 주소를 지어내지 않는다. 필요한 이미지 위치에는 [이미지 검색: 구체적인 검색어]라고 표시한다.\n- 모바일에서 읽기 쉽도록 짧은 문단으로 작성한다.\n완성된 글만 출력하고, 확인되지 않은 정보는 분명하게 표시하라.`;
+ try{await navigator.clipboard.writeText(prompt);alert('프롬프트를 복사했어요. Gemini를 열어 붙여 넣으세요.')}catch(e){promptWindow(prompt)}
+};
+function promptWindow(t){const w=window.open('','_blank','width=700,height=600');if(w){w.document.write('<textarea style="width:98%;height:95%"></textarea>');w.document.querySelector('textarea').value=t}}
+$('geminiBtn').onclick=()=>window.open('https://gemini.google.com/app','_blank','noopener');
+$('searchBtn').onclick=async()=>{
+ const q=$('imageQuery').value.trim();if(!q){alert('이미지 검색어를 입력하세요.');return}
+ $('imageStatus').textContent='검색 중…';$('images').innerHTML='';
+ try{
+ const url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent('filetype:bitmap '+q)+'&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=500&format=json&origin=*';
+ const r=await fetch(url);if(!r.ok)throw Error('검색 서버 응답 오류');const data=await r.json();const pages=Object.values(data.query?.pages||{});
+ if(!pages.length){$('imageStatus').textContent='검색 결과가 없습니다. 다른 검색어를 입력해 보세요.';return}
+ $('imageStatus').textContent=pages.length+'개 결과 — 사용 조건을 확인한 뒤 삽입하세요.';
+ pages.forEach(p=>{
+ const info=p.imageinfo?.[0];if(!info?.thumburl)return;
+ const title=p.title.replace(/^File:/,'');const artist=info.extmetadata?.Artist?.value||'작가 정보 확인 필요';
+ const license=info.extmetadata?.LicenseShortName?.value||'라이선스 확인 필요';
+ const card=document.createElement('div');card.className='imgcard';
+ const img=document.createElement('img');img.src=info.thumburl;img.alt=title;img.loading='lazy';
+ const meta=document.createElement('div');meta.textContent=title+' · '+license;
+ const btn=document.createElement('button');btn.textContent='본문에 삽입';
+ btn.onclick=()=>{const fig=document.createElement('figure'),im=document.createElement('img'),cap=document.createElement('figcaption');im.src=info.url;im.alt=title;cap.textContent='이미지: '+title+' | 작가: '+artist.replace(/<[^>]*>/g,'')+' | 라이선스: '+license+' | 출처: Wikimedia Commons';fig.append(im,cap);editor.append(fig);fig.scrollIntoView({behavior:'smooth',block:'center'})};
+ const source=document.createElement('a');source.href='https://commons.wikimedia.org/wiki/'+encodeURIComponent(p.title.replace(/ /g,'_'));source.target='_blank';source.rel='noopener';source.textContent='원본·라이선스 확인';source.style.cssText='display:block;padding:0 8px 9px;color:#9fc4ff;font-size:12px';
+ card.append(img,meta,btn,source);$('images').append(card);
+ });
+ }catch(e){$('imageStatus').textContent='이미지 검색 실패: '+e.message+'. 인터넷 연결을 확인하거나 나중에 다시 시도하세요.'}
+};
+$('copyBtn').onclick=async()=>{try{const html=editor.innerHTML;const plain=editor.innerText;if(navigator.clipboard?.write&&window.ClipboardItem){await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([plain],{type:'text/plain'})})]);alert('서식 포함 본문을 복사했어요.')}else{await navigator.clipboard.writeText(plain);alert('텍스트를 복사했어요. 이미지·서식은 HTML 저장을 이용하세요.')}}catch(e){alert('복사 권한이 없습니다. HTML 저장을 이용해 주세요.')}}
+$('htmlBtn').onclick=()=>download('focus-blog-draft.html','<!doctype html><html lang="ko"><meta charset="utf-8"><body>'+editor.innerHTML+'</body></html>','text/html;charset=utf-8');
+$('mdBtn').onclick=()=>{let t=editor.innerHTML.replace(/<h1[^>]*>(.*?)<\/h1>/gi,'# $1\n').replace(/<h2[^>]*>(.*?)<\/h2>/gi,'## $1\n').replace(/<p[^>]*>(.*?)<\/p>/gi,'$1\n\n').replace(/<br\s*\/?>/gi,'\n').replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ');download('focus-blog-draft.md',t,'text/markdown;charset=utf-8')};
+$('clearBtn').onclick=()=>{if(confirm('본문을 모두 비울까요?'))editor.innerHTML=''};
+</script></body></html>
