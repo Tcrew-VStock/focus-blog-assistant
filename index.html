@@ -49,7 +49,7 @@ button,.btn{border:0;border-radius:9px;padding:10px 13px;background:#263b57;colo
 </section></main>
 <script>
 const $=id=>document.getElementById(id), editor=$('editor');
-$('date').value=new Date().toISOString().slice(0,10);
+(()=>{const d=new Date();$('date').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})();
 function download(name,content,type){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([content],{type}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 $('promptBtn').onclick=async()=>{
  const topic=$('topic').value.trim();if(!topic){alert('주제나 종목을 입력해 주세요.');return}
