@@ -40,6 +40,15 @@
 .mkt-table{width:100%;border-collapse:collapse;font-size:11.5px}.mkt-table th,.mkt-table td{border-bottom:1px solid #262736;padding:6px 6px;text-align:right;white-space:nowrap}.mkt-table th:first-child,.mkt-table td:first-child{text-align:left;color:#b8b7c6}.mkt-table th{color:#8f90a3;font-weight:600;font-size:10.5px;background:#14151f}.mkt-table tr:last-child td{border-bottom:0}.mkt-scroll{overflow-x:auto;max-width:100%}
 .mkt-news{display:grid;gap:7px}.mkt-news a{display:block;border:1px solid #2a2b3b;border-radius:9px;padding:9px 11px;color:#dcdbe8;text-decoration:none;font-size:12px;line-height:1.5}.mkt-news a:hover{border-color:#8c36c7;background:#17131f}.mkt-news a small{display:block;color:#82839a;font-size:10.5px;margin-top:3px}
 .mkt-note{font-size:10.5px;color:#7d7e91;margin-top:10px;line-height:1.65}
+/* prompt copy */
+.prompt-copy-box{margin-top:11px;padding:12px;border:1px dashed #3b2a52;border-radius:12px;background:linear-gradient(140deg,#151021,#100e19)}
+.prompt-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn.prompt-copy{background:linear-gradient(120deg,#3a1355,#251238);border-color:#7a34b3;color:#f3dcff;font-weight:750;box-shadow:0 7px 22px #7c1fd036}
+.btn.prompt-copy:hover{border-color:#b327ff;color:#fff;filter:brightness(1.12)}
+#promptCopyHint{margin-top:8px;line-height:1.6}
+#promptCopyHint.warn{color:#e3b44d}
+#promptCopyHint.live{color:#5dd8a9}
+#promptModalText{min-height:320px;max-height:52vh;resize:vertical;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;overflow:auto}
 @media(max-width:1100px){.mkt-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.mkt-two{grid-template-columns:1fr}}
 @media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.dashboard-grid{grid-template-columns:1fr}.create-layout{grid-template-columns:1fr}.output-card{min-height:0}}
 @media(max-width:760px){.app{grid-template-columns:1fr}.sidebar{position:fixed;left:-260px;top:0;width:248px;transition:left .25s;box-shadow:var(--shadow)}.sidebar.open{left:0}.topbar{height:62px;padding:0 13px}.content{padding:20px 13px 40px}.mobile-menu{display:grid}.search{max-width:none}.top-actions .iconbtn:nth-child(1){display:none}.welcome{align-items:flex-start;flex-direction:column}.welcome h1{font-size:22px}.stats{gap:9px}.card{padding:14px}.stat-value{font-size:23px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.create-layout{display:block}.create-layout>.card+ .card{margin-top:14px}.pipeline{grid-template-columns:1fr}.editor{padding:18px;min-height:420px}.two-col{grid-template-columns:1fr}}
@@ -99,6 +108,10 @@
      <div class="progress"><i id="progressFill"></i></div><div class="log" id="runLog">대기 중 · Gemini API 키를 설정한 뒤 주제를 입력하세요.</div>
      <div class="actions" style="display:flex;gap:8px;margin-top:13px"><button class="btn primary" style="flex:1" id="runBtn">✦ 자료 조사 + 글 자동 작성</button><button class="btn" id="stopBtn" disabled>중단</button></div>
      <div class="helper" style="margin-top:10px">심층 조사는 여러 웹 자료를 탐색하므로 시간이 걸릴 수 있습니다. 조사 중에는 이 탭을 열어 두세요.</div>
+     <div class="prompt-copy-box">
+      <div class="prompt-actions"><button class="btn prompt-copy" id="copyPromptBtn">⧉ 시세 포함 프롬프트 복사</button><button class="btn small ghost" id="previewPromptBtn">미리보기</button><a class="btn small ghost" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT 열기 ↗</a></div>
+      <div class="helper" id="promptCopyHint">시세·차트 조회를 먼저 누르면 최신 수치까지 자동 포함됩니다.</div>
+     </div>
     </div>
     <div class="card output-card">
      <div class="card-head"><div><h3>02. Research & Article</h3><div class="sub">조사 보고서, 출처, 최종 편집 결과</div></div><span class="status-pill" id="outputState">WAITING</span></div>
@@ -137,6 +150,7 @@
  </main>
 </section>
 </div>
+<div class="modal-back" id="promptModalBack"><div class="modal" style="width:min(760px,100%)"><div class="card-head" style="margin-bottom:10px"><h2 style="margin:0;font-size:17px">프롬프트 미리보기</h2><button class="btn small" id="promptModalClose">닫기</button></div><p class="helper" id="promptModalNote" style="margin:0 0 9px">아래 내용을 복사해 ChatGPT에 그대로 붙여넣으세요.</p><textarea class="control" id="promptModalText" readonly spellcheck="false"></textarea><div class="prompt-actions" style="margin-top:10px"><button class="btn primary small" id="promptModalSelect">전체 선택</button><button class="btn small" id="promptModalCopyAgain">다시 복사</button></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
 (() => {
@@ -303,6 +317,7 @@ function mktRender(){
  if($('mktInsertTable'))$('mktInsertTable').onclick=mktInsertTable;
  if($('mktInsertChart'))$('mktInsertChart').onclick=mktInsertChart;
  mktDrawChart();
+ updatePromptHint();
 }
 function mktDrawChart(){
  const cv=$('marketChart');if(!cv)return;
@@ -358,8 +373,8 @@ function mktContextBlock(){
  if(d.consensus&&(d.consensus.targetPrice!=null||d.consensus.recommendation!=null))L.push('- 컨센서스: 목표주가 '+(d.consensus.targetPrice!=null?mktFmtPrice(d.consensus.targetPrice,cur):'확인 불가')+' / 투자의견 '+(d.consensus.recommendation!=null?mktRecoLabel(d.consensus.recommendation):'확인 불가')+' (기준 '+(d.consensus.asOf||'확인 불가')+')');
  const st=mktChartStats();if(st)L.push('- 최근 차트('+MKT.range+'): '+st.from+'~'+st.to+' '+st.count+'거래일, 기간 등락 '+(st.changePercent>0?'+':'')+st.changePercent.toFixed(2)+'%, 구간 최고 '+mktFmtPrice(st.high,cur)+', 구간 최저 '+mktFmtPrice(st.low,cur));
  if(d.flows&&d.flows.length){L.push('- 최근 수급(순매수 수량):');d.flows.forEach(f=>L.push('  · '+f.date+': 외국인 '+f.foreignNet+' / 기관 '+f.institutionNet+' / 개인 '+f.individualNet));}
- const fin=d.financials&&(d.financials.annual||d.financials.quarter);
- if(fin){const kind=d.financials.annual?'annual':'quarter';const f2=d.financials[kind];const periods=f2.periods.slice(-3);const want=['매출액','영업이익','당기순이익','영업이익률','순이익률','부채비율','ROE'];L.push('- 실적('+(kind==='annual'?'연간':'분기')+', 단위 '+(f2.unit||'제공처 단위')+'), 컬럼 ' +periods.map(p=>p.title+(p.consensus?'(E)':'')).join(' / '));f2.rows.filter(r=>want.includes(r.title)).forEach(r=>L.push('  · '+r.title+': '+periods.map(p=>r.values[p.key]==null?'-':r.values[p.key]).join(' / ')));}
+ const want=['매출액','영업이익','당기순이익','영업이익률','순이익률','부채비율','ROE'];
+ ['annual','quarter'].forEach(kind=>{const f2=d.financials&&d.financials[kind];if(!f2||!f2.periods||!f2.periods.length)return;const periods=f2.periods.slice(-3);L.push('- 실적('+(kind==='annual'?'연간':'분기')+', 단위 '+(f2.unit||'제공처 단위')+'), 컬럼 ' +periods.map(p=>p.title+(p.consensus?'(E)':'')).join(' / '));f2.rows.filter(r=>want.includes(r.title)).forEach(r=>L.push('  · '+r.title+': '+periods.map(p=>r.values[p.key]==null?'-':r.values[p.key]).join(' / ')));});
  if(d.news&&d.news.length){L.push('- 최근 관련 뉴스 헤드라인:');d.news.forEach(n=>L.push('  · ['+(n.publishedAt||'')+'] '+n.title+' ('+(n.office||'')+')'));}
  L.push('- 출처: '+(d.sources||[]).map(s=>s.name).join(', ')+' ('+((d.sources||[])[0]?d.sources[0].url:'')+')');
  L.push('- 작성 규칙: 위 값은 실제 조회된 시장 데이터다. 글의 표와 본문에 쓰는 시세·밸류에이션·실적 숫자는 반드시 위 값과 일치해야 하며, 기준 시각과 장 상태(장중/장마감), 출처(네이버 금융)를 함께 표기하라. 위 목록에 없는 수치는 추정하지 말고 별도 출처를 명시하라.');
@@ -386,8 +401,78 @@ if($('marketIntTest'))$('marketIntTest').onclick=()=>mktTest(false);
 if(state.marketSymbol&&$('marketSymbol'))$('marketSymbol').value=state.marketSymbol;
 mktPill('ready','READY');
 mktTest(true);
+/* ================= 시세 포함 프롬프트 복사 ================= */
+function promptScopeLabels(){const map={latest:'최신 뉴스·공시',financial:'실적·재무',market:'주가·시장 데이터',industry:'경쟁사·산업 동향'};const picked=scopes();return picked.length?picked.map(k=>map[k]||k).join(', '):'지정 없음'}
+function buildMarketPrompt(){
+ const topic=$('topic').value.trim();
+ const dataBlock=String(mktContextBlock()||'').trim();
+ const hasData=!!(MKT.data&&MKT.data.quote);
+ const L=[];
+ L.push('당신은 한국어 경제·주식 블로그를 대신 써 주는 전문 에디터입니다. 아래 [글 요청]·[브랜드 보이스]·[검증된 시장 데이터]만 근거로, 네이버 블로그에 바로 올릴 수 있는 완성된 글 한 편을 작성해 주세요.');
+ L.push('');
+ L.push('[글 요청]');
+ L.push('- 주제 / 종목 / 키워드: '+(topic||'미입력'));
+ L.push('- 콘텐츠 유형: '+$('kind').value);
+ L.push('- 글의 관점: '+$('angle').value);
+ L.push('- 목표 분량: '+$('length').value);
+ L.push('- 기준 시장: '+$('market').value);
+ L.push('- 특히 확인할 내용: '+($('mustCheck').value.trim()||'없음'));
+ L.push('- 조사 범위: '+promptScopeLabels());
+ L.push('- 작성 기준 시각: '+currentDateTime()+' (Asia/Seoul)');
+ L.push('');
+ L.push('[브랜드 보이스]');
+ L.push('브랜드 페르소나: '+($('brandPersona').value.trim()||'경제·주식 분야를 꾸준히 다루는 친근하고 꼼꼼한 블로거'));
+ L.push('문체 / 톤: '+($('brandTone').value.trim()||'과장 없이 독자가 이해하기 쉽게 설명하는 자연스러운 한국어 구어체'));
+ L.push('항상 적용할 작성 규칙:');
+ L.push(($('brandRules').value.trim()||'모든 수치에 출처와 기준일을 표시하고, 확인하지 못한 숫자는 추정하지 않는다.'));
+ L.push('');
+ if(hasData){
+  L.push(dataBlock);
+ }else{
+  L.push('[검증된 시장 데이터]');
+  L.push('이 대화에는 아직 시세·차트 조회 결과가 없습니다. 글에 넣을 현재가·등락률·거래량·시가총액·밸류에이션·실적 수치를 임의로 만들지 말고, 확인 가능한 출처와 기준 시각을 함께 밝히거나 "확인 불가"로 표시하세요.');
+ }
+ L.push('');
+ L.push('[작성 지시]');
+ L.push('1. 구성: 제목 → 공감형 도입부(3~5문장) → H2 소제목 3~4개 → 핵심 수치 데이터 표 → 투자자 관점의 해석(긍정 요인과 위험 요인 모두) → 질문형 마무리 → 해시태그 8~12개.');
+ L.push('2. 제목은 메인 키워드를 앞에 두되 과장·낚시성 표현은 쓰지 마세요. 문단은 2~3문장으로 짧게 끊고, 어려운 금융 용어는 풀어서 설명하세요.');
+ L.push('3. 데이터 표에는 위 시장 데이터에서 값이 있는 항목(현재가·전일 대비·시가/고가/저가·거래량·거래대금·시가총액·52주 최고/최저·PER/PBR/EPS/BPS·배당수익률·목표주가·투자의견·최근 5거래일 수급·연간/분기 실적)을 골라 담고, 표 아래에 기준 시각·장 상태(장중/장마감)·출처(네이버 금융)를 적으세요.');
+ L.push('4. [검증된 시장 데이터]의 숫자와 단위는 그대로 사용하고 반올림·변형·추정으로 바꾸지 마세요. 값이 "확인 불가"이거나 "—"인 항목은 비워 두거나 "확인 불가"로 적고 다른 숫자로 채우지 마세요.');
+ L.push('5. 주가는 실시간·지연·최근 종가를 구분해 표기하고, 실적은 회계기간과 발표일을 구분하며 확정치와 컨센서스 추정치를 구분하세요.');
+ L.push('6. 위 데이터에 없는 최신 뉴스·공시·전망이 필요하면 웹 검색으로 확인하되, 새로 가져온 수치에도 출처와 기준일을 붙이세요. 출처를 확인하지 못한 내용은 쓰지 마세요.');
+ L.push('7. 특정 종목의 매수·매도 권유나 수익 보장 표현은 쓰지 말고, 사실과 의견을 구분해 중립적으로 서술하세요.');
+ L.push('8. 출력은 완성된 글 본문만 Markdown으로 작성하고, 시스템 설명·작성 과정·프롬프트 해설은 넣지 마세요.');
+ L.push('');
+ L.push('위 조건대로 지금 바로 글을 작성해 주세요.');
+ return L.join('\n');
+}
+function promptLegacyCopy(text){
+ try{const ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:-9999px;width:1px;height:1px;opacity:0;padding:0;border:0';document.body.appendChild(ta);ta.focus();ta.select();try{ta.setSelectionRange(0,text.length)}catch(e){}const ok=document.execCommand('copy');document.body.removeChild(ta);return !!ok}catch(e){return false}
+}
+async function writePromptClipboard(text){
+ try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);return true}}catch(e){}
+ return promptLegacyCopy(text);
+}
+function openPromptModal(text,note){const ta=$('promptModalText');if(!ta)return;ta.value=text;if(note)$('promptModalNote').textContent=note;$('promptModalBack').classList.add('show');setTimeout(()=>{try{ta.focus();ta.setSelectionRange(0,0);ta.scrollTop=0}catch(e){}},50)}
+function closePromptModal(){const m=$('promptModalBack');if(m)m.classList.remove('show')}
+function promptReadyText(){const topic=$('topic').value.trim();if(!topic){toast('주제부터 입력해 주세요.');$('topic').focus();return null}return buildMarketPrompt()}
+async function copyMarketPrompt(){
+ const text=promptReadyText();if(!text)return;
+ const ok=await writePromptClipboard(text);
+ if(ok){const q=MKT.data&&MKT.data.quote;toast('프롬프트를 복사했습니다'+(q?' · '+q.name+' 시세 포함':'')+'. ChatGPT에 붙여넣으세요.')}
+ else{openPromptModal(text,'브라우저가 자동 복사를 막았습니다. 아래 텍스트를 길게 눌러 전체 선택한 뒤 복사해 주세요.')}
+}
+if($('copyPromptBtn'))$('copyPromptBtn').onclick=copyMarketPrompt;
+if($('previewPromptBtn'))$('previewPromptBtn').onclick=()=>{const text=promptReadyText();if(text)openPromptModal(text,'미리보기입니다. 이 내용을 복사해 ChatGPT에 그대로 붙여넣어도 됩니다.')};
+if($('promptModalClose'))$('promptModalClose').onclick=closePromptModal;
+if($('promptModalBack'))$('promptModalBack').onclick=e=>{if(e.target===$('promptModalBack'))closePromptModal()};
+if($('promptModalSelect'))$('promptModalSelect').onclick=()=>{const ta=$('promptModalText');ta.focus();ta.select();try{ta.setSelectionRange(0,ta.value.length)}catch(e){}toast('전체 선택했습니다. 복사(Ctrl+C 또는 길게 눌러 복사)해 주세요.')};
+if($('promptModalCopyAgain'))$('promptModalCopyAgain').onclick=async()=>{const ok=await writePromptClipboard($('promptModalText').value);toast(ok?'복사했습니다.':'복사가 계속 차단됩니다. 텍스트를 길게 눌러 직접 복사해 주세요.')};
+document.addEventListener('keydown',e=>{const m=$('promptModalBack');if(e.key==='Escape'&&m&&m.classList.contains('show'))closePromptModal()});
+function updatePromptHint(){const el=$('promptCopyHint');if(!el)return;const q=MKT.data&&MKT.data.quote;if(q){el.className='helper live';el.textContent='✓ '+q.name+' 시세·밸류에이션·수급·실적 포함 · 기준 '+(q.tradedAt||'확인 불가')+' ('+(q.marketStatusText||'—')+')'}else{el.className='helper warn';el.textContent='아직 시세를 조회하지 않아 기본 프롬프트로 복사됩니다. 시세·차트 조회를 먼저 누르면 최신 수치까지 자동 포함됩니다.'}}
+updatePromptHint();
 // 유지보수·검증용 훅(원본 상태를 바꾸지 않음): 프롬프트에 들어가는 시장데이터 블록을 직접 확인할 수 있게 한다.
-window.__focus={mktContextBlock,buildResearchPrompt,state:()=>state,marketApi};
+window.__focus={mktContextBlock,buildResearchPrompt,state:()=>state,marketApi,buildMarketPrompt,updatePromptHint};
 // restore brand, scope, connection
 if(state.brand.persona)$('brandPersona').value=state.brand.persona;if(state.brand.tone)$('brandTone').value=state.brand.tone;if(state.brand.rules)$('brandRules').value=state.brand.rules;if(state.scope)document.querySelectorAll('[data-scope]').forEach(b=>b.classList.toggle('active',state.scope.includes(b.dataset.scope)));updateConnection();refreshDashboard();
 })();
