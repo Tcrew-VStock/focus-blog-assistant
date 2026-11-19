@@ -858,14 +858,15 @@
     return -1;
   }
   function fixJosa(text) {
-    return String(text).replace(/([가-힣A-Za-z0-9)\]}"'])(을\(를\)|이\(가\)|은\(는\)|와\(과\)|으로\(로\))/g, function (m, prev, suf) {
+    return String(text).replace(/([가-힣A-Za-z0-9)\]}\"'])(["']?)(을\(를\)|이\(가\)|은\(는\)|와\(과\)|으로\(로\))/g, function (m, prev, quote, suf) {
       if (prev === '}') return m; /* 변수 자리표시자 뒤는 값을 채운 뒤에 결정한다 */
       var bat = hasBatchim(prev);
-      if (suf === '을(를)') return prev + (bat ? '을' : '를');
-      if (suf === '이(가)') return prev + (bat ? '이' : '가');
-      if (suf === '은(는)') return prev + (bat ? '은' : '는');
-      if (suf === '와(과)') return prev + (bat ? '과' : '와');
-      return prev + ((bat && lastJong(prev) !== 8) ? '으로' : '로');
+      var tail = quote || '';
+      if (suf === '을(를)') return prev + tail + (bat ? '을' : '를');
+      if (suf === '이(가)') return prev + tail + (bat ? '이' : '가');
+      if (suf === '은(는)') return prev + tail + (bat ? '은' : '는');
+      if (suf === '와(과)') return prev + tail + (bat ? '과' : '와');
+      return prev + tail + ((bat && lastJong(prev) !== 8) ? '으로' : '로');
     });
   }
 

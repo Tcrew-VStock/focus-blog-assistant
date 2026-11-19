@@ -468,7 +468,7 @@
     var autoD = ENG.autoDomain(text);
     var autoT = ENG.autoTask(autoD, text);
     var d = ENG.domainById(autoD);
-    var core = text.trim().replace(/[.!?。\s]+$/, '');
+    var core = '"' + text.trim().replace(/[.!?。\s]+$/, '') + '"';
     var b = ENG.buildPrompt({
       domainId: autoD,
       taskId: autoT,
