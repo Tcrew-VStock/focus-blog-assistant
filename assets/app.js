@@ -231,6 +231,25 @@
     return c;
   }
 
+  function renderSuggest() {
+    var box = $('domainSuggest');
+    if (!box) return;
+    var d = domain();
+    var primary = String(current.values[d.primary] || '').trim();
+    if (primary.length < 6) { box.style.display = 'none'; return; }
+    var sug = ENG.autoDomain(primary);
+    if (sug === 'meta' || sug === d.id) { box.style.display = 'none'; return; }
+    var sd = ENG.domainById(sug);
+    box.style.display = '';
+    box.innerHTML = '';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'suggest-btn';
+    btn.innerHTML = '<span>💡 이 내용은 <b>' + esc(sd.name) + '</b> 분야가 더 어울려요</span><em>바꾸기 ›</em>';
+    btn.onclick = function () { selectDomain(sug); };
+    box.appendChild(btn);
+  }
+
   function build() {
     var b;
     try {
@@ -244,6 +263,7 @@
     renderPrompt();
     renderStructure();
     renderVars();
+    renderSuggest();
     saveQuiet();
   }
 
@@ -373,9 +393,9 @@
   function promptTitle() {
     var b = current.lastBuild;
     if (!b) return '프롬프트';
-    var first = b.prompt.split('\n').filter(function (l) { return l.trim(); })[0] || '';
-    var clean = first.replace(/[\[\]#*<>]/g, '').trim().slice(0, 40);
-    return (b.task.label + (clean ? ' · ' + clean : '')).slice(0, 60);
+    var primary = String(current.values[b.domain.primary] || '').trim().replace(/\s+/g, ' ');
+    var base = primary ? primary.slice(0, 34) : '';
+    return (b.task.label + (base ? ' · ' + base : '')).slice(0, 60);
   }
 
   function savePrompt() {

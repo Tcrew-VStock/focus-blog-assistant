@@ -100,6 +100,11 @@ select.control{appearance:none;background-image:linear-gradient(45deg,transparen
 .dc-desc{font-size:10px;color:#8f90a3;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
 /* ---------------- builder ---------------- */
+.domain-suggest{margin:-6px 0 14px}
+.suggest-btn{display:flex;width:100%;justify-content:space-between;align-items:center;gap:10px;border:1px solid #4a3468;background:linear-gradient(120deg,#241534,#171020);color:#e6d4f7;border-radius:11px;padding:9px 12px;font-size:12px;text-align:left}
+.suggest-btn:hover{border-color:#a72ce2}
+.suggest-btn b{color:#e9b7ff}
+.suggest-btn em{font-style:normal;color:#c68aff;font-weight:700;white-space:nowrap}
 .build-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:14px;align-items:start}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
 .field.full{grid-column:1/-1}
