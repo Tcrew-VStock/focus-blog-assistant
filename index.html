@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="FOCUS AI">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="./assets/styles.css?v=4.0.1">
+<link rel="stylesheet" href="./assets/styles.css?v=4.0.2">
 <script>
 /* 검증용: ?debug=1 일 때만 로드 오류를 수집한다(일반 사용에는 영향 없음) */
 if (location.search.indexOf('debug') !== -1) {
@@ -40,7 +40,10 @@ if (location.search.indexOf('debug') !== -1) {
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <img class="brand-mark" src="./icons/icon-192.png" alt="FOCUS AI" width="28" height="28">
-      <span>FOCUS <span style="color:#c34dff;margin-left:-6px">AI</span><small>PROMPT STUDIO</small></span>
+      <div class="brand-text">
+        <div class="brand-name">FOCUS <span>AI</span></div>
+        <div class="brand-sub">PROMPT STUDIO</div>
+      </div>
     </div>
 
     <div class="navlabel">Studio</div>
@@ -104,7 +107,7 @@ if (location.search.indexOf('debug') !== -1) {
             <h1>무엇을 위한 프롬프트인가요?</h1>
             <p>분야를 고르고 내용을 적으면, 프레임워크와 타겟 AI에 맞춰 전문가급 프롬프트가 바로 만들어집니다.</p>
           </div>
-          <span class="status-pill" id="builderStatus">NO API KEY NEEDED</span>
+          <span class="status-pill" id="builderStatus">API 키 없이 동작</span>
         </div>
 
         <div class="domain-grid" id="domainGrid"></div>
@@ -371,9 +374,9 @@ if (location.search.indexOf('debug') !== -1) {
 
 <div class="toast" id="toast"></div>
 
-<script src="./assets/engine.js?v=4.0.1"></script>
-<script src="./assets/market.js?v=4.0.1"></script>
-<script src="./assets/app.js?v=4.0.1"></script>
+<script src="./assets/engine.js?v=4.0.2"></script>
+<script src="./assets/market.js?v=4.0.2"></script>
+<script src="./assets/app.js?v=4.0.2"></script>
 <script>
 /* PWA: Service Worker 등록 + 설치 버튼 */
 (function () {
