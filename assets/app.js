@@ -95,12 +95,16 @@
     });
   }
 
-  function selectDomain(id) {
+  function selectDomain(id, carryTopic) {
     if (current.valuesByDomain[current.domainId]) current.valuesByDomain[current.domainId] = current.values;
     current.domainId = id;
     var d = domain();
     current.taskId = d.tasks[0].id;
     current.values = current.valuesByDomain[id] || {};
+    if (carryTopic && !String(current.values[d.primary] || '').trim()) {
+      current.values[d.primary] = carryTopic;
+      current.valuesByDomain[id] = current.values;
+    }
     current.varValues = {};
     renderDomainGrid();
     renderTasks();
@@ -246,7 +250,7 @@
     btn.type = 'button';
     btn.className = 'suggest-btn';
     btn.innerHTML = '<span>💡 이 내용은 <b>' + esc(sd.name) + '</b> 분야가 더 어울려요</span><em>바꾸기 ›</em>';
-    btn.onclick = function () { selectDomain(sug); };
+    btn.onclick = function () { selectDomain(sug, primary); };
     box.appendChild(btn);
   }
 
