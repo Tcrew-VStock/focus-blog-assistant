@@ -2,7 +2,7 @@
    - 정적 shell: 네트워크 우선, 실패 시 캐시 fallback
    - 시세 API 등 외부/비-GET 요청: 손대지 않고 그대로 통과
 */
-const CACHE_NAME = 'focus-prompt-studio-v4';
+const CACHE_NAME = 'focus-prompt-studio-v4-1';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -64,7 +64,7 @@ self.addEventListener('fetch', (event) => {
 async function networkFirst(req) {
   const cache = await caches.open(CACHE_NAME);
   try {
-    const fresh = await fetch(req);
+    const fresh = await fetch(req, { cache: 'no-store' });
     if (fresh && fresh.ok && fresh.type === 'basic') {
       cache.put(req, fresh.clone()).catch(() => {});
     }
