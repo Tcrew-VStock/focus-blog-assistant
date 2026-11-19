@@ -98,7 +98,7 @@
       var a = $('marketSymbol'), b = $('builderMktSymbol');
       sym = String((a && a.value) || (b && b.value) || '').trim();
     }
-    if (!sym) { toast('종목명이나 티커를 입력해 주세요.'); return; }
+    if (!sym) { toast('종목명을 입력하면 시세·밸류에이션·실적이 프롬프트에 포함됩니다.'); return; }
     setPill('ready', 'LOADING');
     try {
       var q = await fetchJson('/api/quote?symbol=' + encodeURIComponent(sym));
@@ -407,7 +407,10 @@
 
     var a = $('marketLoad'), b = $('builderMktLoad'), c = $('marketAuto');
     if (a) a.onclick = function () { load(); };
-    if (b) b.onclick = function () { load(); };
+    if (b) b.onclick = function () {
+      var v = ($('builderMktSymbol') || {}).value || '';
+      if (!v.trim()) autoDetect(); else load();
+    };
     if (c) c.onclick = autoDetect;
 
     ['marketSymbol', 'builderMktSymbol'].forEach(function (id) {
@@ -496,6 +499,7 @@
     loadChart: loadChart,
     redraw: drawChart,
     hasData: function () { return !!(MKT.data && MKT.data.quote); },
+    auto: autoDetect,
     contextBlock: contextBlock,
     symbol: function () { return MKT.symbol; },
     apiUrl: apiUrl,

@@ -444,10 +444,11 @@
     var autoD = ENG.autoDomain(text);
     var autoT = ENG.autoTask(autoD, text);
     var d = ENG.domainById(autoD);
+    var core = text.trim().replace(/[.!?。\s]+$/, '');
     var b = ENG.buildPrompt({
       domainId: autoD,
       taskId: autoT,
-      values: { [d.primary]: text.trim() },
+      values: { [d.primary]: core },
       framework: ($('diagFramework') || {}).value || 'costar',
       target: ($('diagTarget') || {}).value || 'universal',
       tone: ($('diagTone') || {}).value || 'professional',
@@ -456,7 +457,7 @@
       lang: 'ko',
       forbid: ['nofab', 'nohype', 'nofiller', 'norepeat'],
       customForbid: '',
-      extraContext: '원본 요청(작성자가 실제로 입력한 문장):\n"""' + text.trim() + '"""\n위 원본의 의도를 유지하면서 빠진 정보는 [확인 필요]로 표시하고, 원본에 없던 사실을 지어내지 않는다.'
+      extraContext: '이 프롬프트는 사용자가 직접 쓴 한 줄 요청을 재설계한 것이다. 원문의 의도는 유지하되, 원문에 없던 사실을 지어내지 말고 빠진 정보는 [확인 필요]로 표시한다.'
     });
     current.diagBuild = b;
     return b.prompt;
