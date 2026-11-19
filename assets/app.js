@@ -479,6 +479,7 @@
       format: 'auto',
       depth: 'deep',
       lang: 'ko',
+      audience: /초보|입문|처음|쉽게|이해하게|왕초보/.test(text) ? '해당 분야를 처음 접하는 사람' : '',
       forbid: ['nofab', 'nohype', 'nofiller', 'norepeat'],
       customForbid: '',
       extraContext: '이 프롬프트는 사용자가 직접 쓴 한 줄 요청을 재설계한 것이다. 원문의 의도는 유지하되, 원문에 없던 사실을 지어내지 말고 빠진 정보는 [확인 필요]로 표시한다.'
