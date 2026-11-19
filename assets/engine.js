@@ -859,6 +859,7 @@
   }
   function fixJosa(text) {
     return String(text).replace(/([가-힣A-Za-z0-9)\]}"'])(을\(를\)|이\(가\)|은\(는\)|와\(과\)|으로\(로\))/g, function (m, prev, suf) {
+      if (prev === '}') return m; /* 변수 자리표시자 뒤는 값을 채운 뒤에 결정한다 */
       var bat = hasBatchim(prev);
       if (suf === '을(를)') return prev + (bat ? '을' : '를');
       if (suf === '이(가)') return prev + (bat ? '이' : '가');
@@ -1360,6 +1361,6 @@
     DOMAINS: DOMAINS, PRESETS: PRESETS,
     domainById: domainById, buildPrompt: buildPrompt, extractVars: extractVars,
     fillVars: fillVars, diagnose: diagnose, autoDomain: autoDomain, autoTask: autoTask,
-    resolveFramework: resolveFramework, joinLines: joinLines
+    resolveFramework: resolveFramework, joinLines: joinLines, fixJosa: fixJosa
   };
 })(window);

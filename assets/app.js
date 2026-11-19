@@ -250,8 +250,8 @@
   function displayPrompt() {
     var b = current.lastBuild;
     if (!b) return '';
-    if (!b.vars.length) return b.prompt;
-    return ENG.fillVars(b.prompt, current.varValues);
+    if (!b.vars.length) return ENG.fixJosa(b.prompt);
+    return ENG.fixJosa(ENG.fillVars(b.prompt, current.varValues));
   }
 
   function renderPrompt() {
