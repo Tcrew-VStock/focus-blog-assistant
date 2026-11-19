@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "FOCUS AI Content Studio",
+  "name": "FOCUS AI Prompt Studio",
   "short_name": "FOCUS AI",
-  "description": "시장 데이터 리서치부터 블로그 초안 작성까지 한 화면에서 처리하는 AI 콘텐츠 스튜디오.",
+  "description": "코딩·비즈니스·주식·이미지·학습·마케팅·글쓰기까지, 모든 분야의 프롬프트를 전문가 수준으로 만드는 프롬프트 스튜디오.",
   "lang": "ko",
   "dir": "ltr",
   "start_url": "./",
@@ -12,25 +12,10 @@
   "orientation": "any",
   "background_color": "#09090f",
   "theme_color": "#7c3aed",
-  "categories": ["productivity", "finance", "news"],
+  "categories": ["productivity", "utilities", "education"],
   "icons": [
-    {
-      "src": "./icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icons/icon-maskable-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

@@ -1,13 +1,16 @@
-/* FOCUS AI Content Studio — Service Worker
-   설치 가능한 PWA 조건을 채우기 위한 최소·안전한 캐시 전략.
+/* FOCUS AI Prompt Studio — Service Worker
    - 정적 shell: 네트워크 우선, 실패 시 캐시 fallback
    - 시세 API 등 외부/비-GET 요청: 손대지 않고 그대로 통과
 */
-const CACHE_NAME = 'focus-shell-v1';
+const CACHE_NAME = 'focus-prompt-studio-v4';
 const SHELL_ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
+  './assets/styles.css',
+  './assets/engine.js',
+  './assets/market.js',
+  './assets/app.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
@@ -20,7 +23,6 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
-      // 개별 캐시: 한 파일이 404여도 설치 자체는 실패하지 않게 한다.
       await Promise.all(
         SHELL_ASSETS.map(async (url) => {
           try {
@@ -52,18 +54,10 @@ self.addEventListener('message', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-
-  // GET만 다룬다. POST 등은 브라우저 기본 동작.
   if (req.method !== 'GET') return;
-
   const url = new URL(req.url);
-
-  // 외부 도메인(시세 워커, Gemini, 위키미디어 등)은 캐시하지 않고 그대로 통과.
   if (url.origin !== self.location.origin) return;
-
-  // API·실시간 데이터 경로는 절대 캐시하지 않는다.
   if (url.pathname.includes('/api/')) return;
-
   event.respondWith(networkFirst(req));
 });
 
