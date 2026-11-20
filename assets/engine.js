@@ -1727,7 +1727,8 @@
     });
 
     var primaryRaw = String(vals[domain.primary] == null ? '' : vals[domain.primary]).trim();
-    var intent = parseIntent([primaryRaw, cfg.extraContext || ''].filter(function (x) { return x; }).join('\n'));
+    /* 의도 신호는 사용자가 직접 쓴 주제 입력에서만 읽는다(안내문·시세 블록이 섞이지 않도록) */
+    var intent = parseIntent(primaryRaw);
     var signals = intentSummary(intent);
 
     var context = [];
@@ -2329,7 +2330,7 @@
     /* 이미지 AI 타겟은 시각 분야에서만 적용한다(금융·코딩 텍스트가 이미지 프롬프트로 바뀌지 않도록) */
     if (target === 'image' && !domain.isVisual) target = 'universal';
     var fw = resolveFramework(cfg.framework, domain, target);
-    var intent = parseIntent([String((cfg.values || {})[domain.primary] || ''), cfg.extraContext || ''].filter(function (x) { return x; }).join('\n'));
+    var intent = parseIntent(String((cfg.values || {})[domain.primary] || ''));
 
     var result;
     if (target === 'image' || (domain.isVisual && target === 'universal')) {
