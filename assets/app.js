@@ -24,14 +24,22 @@
 
   function loadState() {
     var base = {
-      version: 4, apiKey: '', marketApi: '', marketSymbol: '',
+      version: 41, marketApi: '', marketSymbol: '',
       prompts: [],
-      defaults: { tone: 'professional', format: 'auto', depth: 'standard', lang: 'ko', framework: 'auto', target: 'universal' }
+      defaults: { tone: 'professional', format: 'auto', depth: 'standard', lang: 'ko', framework: 'auto', target: 'universal', mode: 'standard' }
     };
     try {
       var raw = JSON.parse(localStorage.getItem(STORE) || 'null');
       if (raw && typeof raw === 'object') {
+        /* v4.1: 이전 버전의 Gemini 키는 남기지 않는다 */
+        if (raw.apiKey || raw.geminiKey) {
+          delete raw.apiKey;
+          delete raw.geminiKey;
+          window.__focusPurgedKey = true;
+          try { localStorage.setItem(STORE, JSON.stringify(raw)); } catch (e2) { /* ignore */ }
+        }
         Object.keys(base).forEach(function (k) { if (raw[k] === undefined) raw[k] = base[k]; });
+        if (!raw.defaults || !raw.defaults.mode) raw.defaults = Object.assign({}, base.defaults, raw.defaults || {});
         if (!Array.isArray(raw.prompts)) raw.prompts = [];
         return raw;
       }
@@ -199,6 +207,7 @@
       values: values,
       framework: ($('frameworkSel') || {}).value || 'auto',
       target: ($('targetSel') || {}).value || 'universal',
+      mode: ($('modeSel') || {}).value || 'standard',
       tone: ($('toneSel') || {}).value || 'professional',
       format: ($('formatSel') || {}).value || 'auto',
       depth: ($('depthSel') || {}).value || 'standard',
@@ -224,7 +233,8 @@
       tone: ($('toneSel') || {}).value || 'professional',
       format: ($('formatSel') || {}).value || 'auto',
       depth: ($('depthSel') || {}).value || 'standard',
-      lang: ($('langSel') || {}).value || 'ko'
+      lang: ($('langSel') || {}).value || 'ko',
+      mode: ($('modeSel') || {}).value || 'standard'
     };
     try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) { /* ignore */ }
   }
@@ -287,7 +297,8 @@
     if (meta) {
       var fwLabel = (ENG.FRAMEWORKS.filter(function (f) { return f.id === b.framework; })[0] || {}).label || b.framework;
       var tgLabel = (ENG.TARGETS.filter(function (t) { return t.id === b.target; })[0] || {}).label || b.target;
-      meta.textContent = b.domain.icon + ' ' + b.domain.name + ' · ' + b.task.label + ' · ' + fwLabel + ' · ' + tgLabel;
+      var mdLabel = (ENG.MODES.filter(function (m) { return m.id === (b.mode && b.mode.id); })[0] || {}).label || '표준 실전형';
+      meta.textContent = b.domain.icon + ' ' + b.domain.name + ' · ' + b.task.label + ' · ' + fwLabel + ' · ' + tgLabel + ' · ' + mdLabel;
     }
     var cnt = $('promptChars');
     if (cnt) cnt.textContent = displayPrompt().length.toLocaleString('ko-KR') + '자';
@@ -320,6 +331,13 @@
     var fw = ENG.FRAMEWORKS.filter(function (f) { return f.id === b.framework; })[0] || {};
     var tg = ENG.TARGETS.filter(function (t) { return t.id === b.target; })[0] || {};
     var html = '<div class="struct-head"><div><b>' + esc(fw.label || b.framework) + '</b><span>' + esc(fw.hint || '') + '</span></div><div><b>' + esc(tg.label || b.target) + '</b><span>' + esc(tg.hint || '') + '</span></div></div>';
+    html += '<div class="struct-head" style="grid-template-columns:1fr"><div><b>' + esc((ENG.MODES.filter(function (m) { return m.id === (b.mode && b.mode.id); })[0] || {}).label || '표준 실전형') + '</b><span>' + esc((b.mode && b.mode.hint) || '') + ' · 프롬프트 ' + b.prompt.length.toLocaleString('ko-KR') + '자</span></div></div>';
+    var sig = b.intent ? ENG.intentSummary(b.intent) : [];
+    if (sig.length) {
+      html += '<div class="intent-box"><b>입력에서 읽어낸 신호</b>' + sig.map(function (x) {
+        return '<div class="intent-row"><span>' + esc(x.t) + '</span><em>' + esc(x.v) + '</em></div>';
+      }).join('') + '<p>이 신호가 목표·맥락·체크포인트에 자동으로 반영됩니다.</p></div>';
+    }
     html += '<div class="struct-list">';
     (b.sections || []).forEach(function (s, i) {
       var chars = s.lines.join('\n').length;
@@ -441,27 +459,32 @@
     }
     var axes = $('diagAxes');
     if (axes) {
-      axes.innerHTML = r.axes.map(function (a) {
+      axes.innerHTML = r.details.map(function (a) {
         var pct = Math.round(a.score / a.max * 100);
         var tone = pct >= 80 ? 'good' : pct >= 50 ? 'mid' : 'low';
-        return '<div class="axis"><div class="axis-top"><span>' + esc(a.label) + '</span><b>' + a.score + '/' + a.max + '</b></div><div class="axis-bar"><i class="' + tone + '" style="width:' + pct + '%"></i></div></div>';
+        var chips = a.items.map(function (i) {
+          return '<span class="crit ' + (i.ok ? 'ok' : 'no') + '">' + (i.ok ? '✓ ' : '✕ ') + esc(i.label) + '</span>';
+        }).join('');
+        return '<div class="axis"><div class="axis-top"><span>' + esc(a.label) + '</span><b>' + a.score + '/' + a.max + '</b></div><div class="axis-bar"><i class="' + tone + '" style="width:' + pct + '%"></i></div><div class="crits">' + chips + '</div></div>';
       }).join('');
     }
     var miss = $('diagMissing');
     if (miss) {
-      if (!r.missing.length) {
+      if (!r.gaps.length) {
         miss.innerHTML = '<div class="ok-box">✓ 다섯 요소가 모두 충분합니다. 바로 쓸 수 있는 프롬프트입니다.</div>';
       } else {
-        miss.innerHTML = r.missing.map(function (m) {
-          return '<div class="miss-item"><b>' + esc(m.label) + ' <span>' + m.score + '/' + m.max + '</span></b><p>' + esc(m.tip) + '</p></div>';
-        }).join('');
+        miss.innerHTML = '<div class="miss-head">빠진 지시 ' + r.gaps.length + '개 — 이 항목이 AI 응답 품질을 떨어뜨립니다</div>' +
+          r.gaps.slice(0, 8).map(function (g) {
+            return '<div class="miss-item"><b>' + esc(g.axis) + ' · ' + esc(g.item) + '</b><p>' + esc(g.fix) + '</p></div>';
+          }).join('') +
+          (r.gaps.length > 8 ? '<p class="helper">나머지 ' + (r.gaps.length - 8) + '개는 아래 재설계 프롬프트에 자동으로 반영했습니다.</p>' : '');
       }
     }
     var up = upgradePrompt(text);
     var upOut = $('diagUpOut');
     if (upOut) upOut.textContent = up;
     var sum = $('diagSummary');
-    if (sum) sum.textContent = '점수 ' + r.score + '점 · ' + r.grade + (r.missing.length ? ' · 보완 ' + r.missing.length + '개' : ' · 보완 없음');
+    if (sum) sum.textContent = r.length + '자 · 점수 ' + r.score + '점 · ' + r.grade + (r.gaps.length ? ' · 빠진 지시 ' + r.gaps.length + '개' : ' · 보완 없음');
   }
 
   function upgradePrompt(text) {
@@ -469,6 +492,17 @@
     var autoT = ENG.autoTask(autoD, text);
     var d = ENG.domainById(autoD);
     var core = '"' + text.trim().replace(/[.!?。\s]+$/, '') + '"';
+    var intent = ENG.parseIntent(text);
+    var keep = [];
+    if (intent.verbs.length) keep.push('요구 동작: ' + intent.verbs.join(', '));
+    if (intent.keywords.length) keep.push('핵심 키워드: ' + intent.keywords.join(', '));
+    if (intent.numbers.length) keep.push('명시된 수치·조건: ' + intent.numbers.join(', ') + ' (임의 변경 금지)');
+    if (intent.tech.length) keep.push('기술·도구: ' + intent.tech.join(', '));
+    if (intent.audience.length) keep.push('대상 단서: ' + intent.audience.join(', '));
+    if (intent.constraints.length) keep.push('제약 표현: ' + intent.constraints.join(' / '));
+    if (intent.quoted.length) keep.push('직접 지정한 표현: ' + intent.quoted.join(' / '));
+    var extra = '이 프롬프트는 사용자가 직접 쓴 요청을 재설계한 것이다. 원문의 의도·표현·수치를 하나도 빠뜨리지 말고 그대로 살린다. 원문에 없던 사실을 지어내지 말고 빠진 정보는 [확인 필요]로 표시한다.' +
+      (keep.length ? '\n[원문에서 보존할 요소]\n- ' + keep.join('\n- ') : '');
     var b = ENG.buildPrompt({
       domainId: autoD,
       taskId: autoT,
@@ -479,10 +513,11 @@
       format: 'auto',
       depth: 'deep',
       lang: 'ko',
+      mode: ($('diagMode') || {}).value || 'pro',
       audience: /초보|입문|처음|쉽게|이해하게|왕초보/.test(text) ? '해당 분야를 처음 접하는 사람' : '',
       forbid: ['nofab', 'nohype', 'nofiller', 'norepeat'],
       customForbid: '',
-      extraContext: '이 프롬프트는 사용자가 직접 쓴 한 줄 요청을 재설계한 것이다. 원문의 의도는 유지하되, 원문에 없던 사실을 지어내지 말고 빠진 정보는 [확인 필요]로 표시한다.'
+      extraContext: extra
     });
     current.diagBuild = b;
     return b.prompt;
@@ -555,6 +590,7 @@
       if ($('formatSel')) $('formatSel').value = c.format || 'auto';
       if ($('depthSel')) $('depthSel').value = c.depth || 'standard';
       if ($('langSel')) $('langSel').value = c.lang || 'ko';
+      if ($('modeSel')) $('modeSel').value = c.mode || 'standard';
       if ($('lengthInput')) $('lengthInput').value = c.length || '';
       if ($('audienceInput')) $('audienceInput').value = c.audience || '';
       if ($('customForbid')) $('customForbid').value = c.customForbid || '';
@@ -645,65 +681,6 @@
     toast('프리셋을 불러왔습니다. 값을 바꾸면 프롬프트가 즉시 갱신됩니다.');
   }
 
-  /* ---------------- Gemini (선택) ---------------- */
-  function hasKey() { return !!(state.apiKey && state.apiKey.trim()); }
-
-  function updateKeyUI() {
-    var el = $('geminiStatus');
-    if (el) {
-      el.textContent = hasKey() ? 'CONNECTED' : 'NOT CONNECTED';
-      el.style.background = hasKey() ? '#123729' : '';
-      el.style.color = hasKey() ? '#9be9c8' : '';
-    }
-    if ($('apiKey')) $('apiKey').value = state.apiKey || '';
-    ['aiEnhanceBtn', 'diagAiBtn'].forEach(function (id) {
-      var b = $(id);
-      if (b) b.style.display = hasKey() ? '' : 'none';
-    });
-  }
-
-  async function callGemini(prompt) {
-    var key = (state.apiKey || '').trim();
-    if (!key) throw new Error('설정에서 Gemini API 키를 먼저 저장해 주세요.');
-    var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-    var r = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.6, maxOutputTokens: 4096 }
-      })
-    });
-    var j = await r.json().catch(function () { return null; });
-    if (!r.ok) {
-      var msg = j && j.error && j.error.message ? j.error.message : ('API 오류 ' + r.status);
-      throw new Error(msg);
-    }
-    var parts = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts;
-    var text = (parts || []).map(function (p) { return p.text || ''; }).join('').trim();
-    if (!text) throw new Error('빈 응답을 받았습니다.');
-    return text;
-  }
-
-  async function enhanceText(sourceText, btn, onDone) {
-    var original = btn ? btn.textContent : '';
-    if (btn) { btn.disabled = true; btn.textContent = 'AI가 다듬는 중…'; }
-    try {
-      var text = await callGemini(
-        '당신은 프롬프트 엔지니어입니다. 아래 프롬프트를 의도는 유지하면서 더 정밀하고 전문가 수준으로 다듬어 주세요.\n' +
-        '- 없는 사실을 추가하지 말 것. 모르는 정보는 {{변수}} 또는 [확인 필요]로 남길 것.\n' +
-        '- 구조와 제약을 더 명확히 하고, 중복을 제거할 것.\n- 결과는 개선된 프롬프트 전문만 출력할 것(설명·머리말 금지).\n\n' +
-        '[원본 프롬프트]\n' + sourceText
-      );
-      if (onDone) onDone(text);
-      toast('Gemini로 프롬프트를 다듬었습니다.');
-    } catch (e) {
-      toast('AI 고도화 실패: ' + e.message.slice(0, 120));
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = original || 'AI로 고도화'; }
-    }
-  }
-
   /* ---------------- 시장 페이지 ---------------- */
   function renderMarketPage() {
     if (window.FocusMarket && window.FocusMarket.hasData() && typeof window.FocusMarket.redraw === 'function') {
@@ -732,10 +709,12 @@
     fillSelect('formatSel', ENG.FORMATS, state.defaults.format);
     fillSelect('depthSel', ENG.DEPTHS, state.defaults.depth);
     fillSelect('langSel', ENG.LANGS, state.defaults.lang);
+    fillSelect('modeSel', ENG.MODES, state.defaults.mode || 'standard');
 
     fillSelect('diagFramework', ENG.FRAMEWORKS.filter(function (f) { return f.id !== 'auto'; }), 'costar');
     fillSelect('diagTarget', ENG.TARGETS, 'universal');
     fillSelect('diagTone', ENG.TONES, 'professional');
+    fillSelect('diagMode', ENG.MODES, 'pro');
 
     // 금지사항 칩
     var fw = $('forbidChips');
@@ -770,7 +749,6 @@
     renderFields();
     renderPresets();
     renderLibrary();
-    updateKeyUI();
     build();
 
     // 이벤트
@@ -794,7 +772,7 @@
       toast('입력을 초기화했습니다.');
     };
 
-    ['frameworkSel', 'targetSel', 'toneSel', 'formatSel', 'depthSel', 'langSel'].forEach(function (id) {
+    ['frameworkSel', 'targetSel', 'toneSel', 'formatSel', 'depthSel', 'langSel', 'modeSel'].forEach(function (id) {
       var el = $(id);
       if (el) el.addEventListener('change', function () { build(); });
     });
@@ -814,19 +792,6 @@
     };
     var saveBtn = $('saveBtn');
     if (saveBtn) saveBtn.onclick = savePrompt;
-    var aiBtn = $('aiEnhanceBtn');
-    if (aiBtn) aiBtn.onclick = function () {
-      if (!current.lastBuild) return;
-      enhanceText(current.lastBuild.prompt, aiBtn, function (text) {
-        current.lastBuild = Object.assign({}, current.lastBuild, { prompt: text, vars: ENG.extractVars(text) });
-        var out = $('promptOut');
-        if (out) out.textContent = displayPrompt();
-        renderVars();
-        var hint = $('promptHint');
-        if (hint) { hint.className = 'helper live'; hint.textContent = '✓ Gemini가 다듬은 결과입니다. [프롬프트 생성]을 누르면 원래대로 돌아갑니다.'; }
-      });
-    };
-
     var diagBtn = $('diagBtn');
     if (diagBtn) diagBtn.onclick = runDiagnose;
     var diagClear = $('diagClear');
@@ -860,16 +825,6 @@
       saveState();
       toast('업그레이드 결과를 라이브러리에 저장했습니다.');
     };
-    var diagAi = $('diagAiBtn');
-    if (diagAi) diagAi.onclick = function () {
-      if (!current.diagBuild) { toast('먼저 진단을 실행해 주세요.'); return; }
-      var src = ($('diagUpOut') || {}).textContent || current.diagBuild.prompt;
-      enhanceText(src, diagAi, function (text) {
-        if ($('diagUpOut')) $('diagUpOut').textContent = text;
-        current.diagBuild = Object.assign({}, current.diagBuild, { prompt: text });
-      });
-    };
-
     var libSearch = $('libSearch');
     if (libSearch) libSearch.addEventListener('input', renderLibrary);
     var libDomain = $('libDomain');
@@ -892,41 +847,13 @@
       });
     }
 
-    // 설정: API 키
-    var saveKey = $('saveKey');
-    if (saveKey) saveKey.onclick = function () {
-      state.apiKey = ($('apiKey').value || '').trim();
-      saveState();
-      updateKeyUI();
-      toast(state.apiKey ? 'API 키를 저장했습니다. AI 고도화를 쓸 수 있습니다.' : 'API 키를 비웠습니다.');
-    };
-    var showKey = $('showKey');
-    if (showKey) showKey.onchange = function () { $('apiKey').type = showKey.checked ? 'text' : 'password'; };
-    var testKey = $('testKey');
-    if (testKey) testKey.onclick = async function () {
-      if (!hasKey()) { toast('먼저 API 키를 저장해 주세요.'); return; }
-      testKey.disabled = true; testKey.textContent = '확인 중…';
-      try {
-        var t = await callGemini('Reply with exactly: OK');
-        toast('Gemini 연결 성공: ' + t.slice(0, 40));
-      } catch (e) {
-        toast('연결 실패: ' + e.message.slice(0, 110));
-      } finally { testKey.disabled = false; testKey.textContent = '연결 테스트'; }
-    };
-    var delKey = $('deleteKey');
-    if (delKey) delKey.onclick = function () {
-      state.apiKey = '';
-      saveState(); updateKeyUI();
-      toast('API 키를 삭제했습니다.');
-    };
     var clearAll = $('clearAll');
     if (clearAll) clearAll.onclick = function () {
-      if (!confirm('저장한 프롬프트, 설정, API 키를 모두 삭제할까요? 되돌릴 수 없습니다.')) return;
+      if (!confirm('저장한 프롬프트와 설정을 모두 삭제할까요? 되돌릴 수 없습니다.')) return;
       localStorage.removeItem(STORE);
       state.prompts = [];
-      state.apiKey = '';
       state.marketApi = '';
-      saveState(); updateKeyUI(); renderLibrary();
+      saveState(); renderLibrary();
       toast('로컬 데이터를 삭제했습니다.');
     };
 
@@ -967,6 +894,11 @@
       setValues: function (v) { current.values = v; renderFields(); build(); },
       diag: runDiagnose
     };
+
+    if (window.__focusPurgedKey) {
+      delete window.__focusPurgedKey;
+      setTimeout(function () { toast('이전 버전에 저장된 Gemini API 키를 삭제했습니다. 이제 키 없이 모든 기능이 동작합니다.'); }, 600);
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
