@@ -1825,10 +1825,10 @@
 
   function intentSection(m) {
     var g = m.signals.map(function (x) { return '- ' + x.t + ': ' + x.v; });
-    if (!g.length) {
+    var has = g.length > 0;
+    if (!has) {
       g = ['- 입력이 짧아 추출된 신호가 없다. 아래 요구사항을 기준으로 가장 보수적인 해석을 택한다.'];
-    }
-    if (m.pro) {
+    } else if (m.pro) {
       g.push('');
       g.push('위 신호는 사용자가 직접 쓴 단서다. 결과물에서 이 표현·수치·범위를 바꾸지 말고 그대로 반영한다.');
     }
@@ -2325,10 +2325,10 @@
     for (var i = 0; i < domain.tasks.length; i++) if (domain.tasks[i].id === cfg.taskId) task = domain.tasks[i];
     if (!task) task = domain.tasks[0];
 
-    var fw = resolveFramework(cfg.framework, domain, cfg.target);
     var target = cfg.target || 'universal';
     /* 이미지 AI 타겟은 시각 분야에서만 적용한다(금융·코딩 텍스트가 이미지 프롬프트로 바뀌지 않도록) */
     if (target === 'image' && !domain.isVisual) target = 'universal';
+    var fw = resolveFramework(cfg.framework, domain, target);
     var intent = parseIntent([String((cfg.values || {})[domain.primary] || ''), cfg.extraContext || ''].filter(function (x) { return x; }).join('\n'));
 
     var result;

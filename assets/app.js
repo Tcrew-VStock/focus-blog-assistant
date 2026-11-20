@@ -751,6 +751,7 @@
     renderFields();
     renderPresets();
     renderLibrary();
+    if ($('targetSel') && $('targetSel').value === 'image' && !domain().isVisual) $('targetSel').value = 'universal';
     build();
 
     // 이벤트
