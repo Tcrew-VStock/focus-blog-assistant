@@ -2252,7 +2252,20 @@
       return { prompt: out.join('\n'), sections: sections, image: true };
     }
 
-    var one = (subject + (details ? ', ' + details : '') + '. ' + look + ', ' + action + ', ' + shotLine + ', ' + lightLine + ', ' + colorLine + ', high detail, sharp focus, professional color grading, no text').replace(/\s+/g, ' ').replace(/\.\s*,/g, ',');
+    var segs = [subject + (details ? ', ' + details : ''), look, action, shotLine, lightLine, colorLine, 'high detail', 'sharp focus', 'professional color grading', 'no text'];
+    var flat = [], seen = {};
+    segs.forEach(function (s) {
+      String(s).split(',').forEach(function (x) {
+        x = x.trim().replace(/^\.+|\.+$/g, '').trim();
+        if (!x) return;
+        var k = x.toLowerCase();
+        if (seen[k]) return;
+        seen[k] = 1;
+        flat.push(x);
+      });
+    });
+    var one = flat.join(', ');
+    one = one.charAt(0).toUpperCase() + one.slice(1) + '.';
 
     out.push('[ENGLISH PROMPT — 복사용]');
     out.push(one);
@@ -2314,6 +2327,8 @@
 
     var fw = resolveFramework(cfg.framework, domain, cfg.target);
     var target = cfg.target || 'universal';
+    /* 이미지 AI 타겟은 시각 분야에서만 적용한다(금융·코딩 텍스트가 이미지 프롬프트로 바뀌지 않도록) */
+    if (target === 'image' && !domain.isVisual) target = 'universal';
     var intent = parseIntent([String((cfg.values || {})[domain.primary] || ''), cfg.extraContext || ''].filter(function (x) { return x; }).join('\n'));
 
     var result;

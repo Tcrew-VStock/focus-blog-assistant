@@ -114,6 +114,8 @@
       current.valuesByDomain[id] = current.values;
     }
     current.varValues = {};
+    /* 시각 분야를 벗어나면 이미지 AI 타겟을 범용으로 되돌린다 */
+    if (!d.isVisual && $('targetSel') && $('targetSel').value === 'image') $('targetSel').value = 'universal';
     renderDomainGrid();
     renderTasks();
     renderFields();
