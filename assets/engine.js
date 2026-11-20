@@ -1587,7 +1587,7 @@
 
   var GOAL_VERBS = ['만들', '구현', '개발', '수정', '고치', '해결', '정리', '분석', '비교', '설명', '요약', '작성', '써', '짜', '알려', '추천', '제안', '검토', '평가', '설계', '계획', '번역', '확인', '골라', '뽑', '도출', '점검', '교정', '번역', '녹음', '추출', '예측', '계산', '암기', '준비'];
 
-  var STOPWORDS = ('그리고 그래서 하지만 그런데 또한 좀 잘 더 많이 조금 우리 저는 제가 너무 정말 진짜 이거 저거 것 수 등 및 대한 위해 통해 하는 하게 해서 있다 있는 없는 같은 다른 어떤 무슨 어느 이번 다음 지금 오늘 내일 이거저거 a an the and or for to of in on with my our your it this that please about how what why when').split(' ');
+  var STOPWORDS = ('그리고 그래서 하지만 그런데 또한 좀 잘 더 많이 조금 우리 저는 제가 너무 정말 진짜 이거 저거 것 수 등 및 대한 위해 통해 하는 하게 해서 있다 있는 없는 같은 다른 어떤 무슨 어느 이번 다음 지금 오늘 내일 없이 이거저거 a an the and or for to of in on with my our your it this that please about how what why when').split(' ');
 
   function uniqCap(a, n) {
     var out = [];
@@ -1628,10 +1628,18 @@
     out.audience = uniqCap(out.audience, 5);
 
     /* 제약 표현은 문장 조각으로 보존 */
-    var cre = /[^\n。.!?]{0,26}(?:하지 마|하지마|말고|제외|금지|없이|이내|이하|이상|무료|로컬|오프라인|단일 파일|한 파일|반드시|꼭|최소|최대|초과하지|안 되|안돼|되지 않|빼고)[^\n。.!?]{0,26}/g, cm;
-    while ((cm = cre.exec(s))) {
-      var cv = cm[0].replace(/^[\s,·]+|[\s,·]+$/g, '');
-      if (cv.length >= 3 && out.constraints.length < 4) out.constraints.push(cv);
+    var CUE = /(하지 마|하지마|말고|제외|금지|없이|이내|이하|이상|무료|로컬|오프라인|단일 파일|한 파일|반드시|꼭|최소|최대|초과하지|안 되|안돼|되지 않|빼고)/;
+    var clauses = s.split(/[,\n·•\/.。!?—–]/).map(function (c) { return c.replace(/^[\s—\-]+|[\s—\-]+$/g, ''); }).filter(function (c) { return c.length >= 3; });
+    clauses.forEach(function (c) {
+      if (out.constraints.length >= 4) return;
+      if (!CUE.test(c)) return;
+      out.constraints.push(c.length > 34 ? c.slice(0, 34) + '…' : c);
+    });
+    if (!out.constraints.length) {
+      var cre = /[^\n。.!?,]{0,18}(?:없이|금지|말고|이내|이하|반드시|제외|로컬|무료)[^\n。.!?,]{0,18}/g, cm;
+      while ((cm = cre.exec(s)) && out.constraints.length < 3) {
+        out.constraints.push(cm[0].replace(/^[\s—\-]+|[\s—\-]+$/g, ''));
+      }
     }
     out.constraints = uniqCap(out.constraints, 4);
 
@@ -1644,7 +1652,7 @@
     tokens.forEach(function (t) {
       t = t.replace(/^[-_.]+|[-_.]+$/g, '');
       if (t.length >= 3 && /[\uAC00-\uD7A3]$/.test(t)) {
-        t = t.replace(/(에서|에게|으로|부터|까지|처럼|보다|하고|하면|하는|되어|이며|에는|에도|과|와|은|는|이|가|을|를|의|에|로|도|만)$/, '');
+        t = t.replace(/(에서|에게|으로|부터|까지|처럼|보다|하고|하면|하는|되어|이며|에는|에도|해줘|해라|하게|하기|되는|인지|과|와|은|는|이|가|을|를|의|에|로|도|만|해|줘)$/, '');
       }
       if (t.length < 2) return;
       if (STOPWORDS.indexOf(t) !== -1) return;
@@ -1767,6 +1775,15 @@
     }
     if (intent.constraints.length) {
       constraintLines.push('- 입력에 담긴 제약을 모두 지킨다: ' + intent.constraints.map(function (c) { return '"' + c + '"'; }).join(' / '));
+    }
+    if (intent.tech.length) {
+      constraintLines.push('- 입력에서 확인된 기술·도구(' + intent.tech.join(', ') + ')를 전제로 답한다. 다른 도구를 임의로 바꾸지 않는다.');
+    }
+    if (intent.audience.length && !cfg.audience) {
+      constraintLines.push('- 입력에 언급된 대상(' + intent.audience.join(', ') + ')의 눈높이와 상황에 맞춘다.');
+    }
+    if (intent.quoted.length) {
+      constraintLines.push('- 사용자가 직접 지정한 표현(' + intent.quoted.map(function (q) { return '"' + q + '"'; }).join(', ') + ')은 다른 말로 바꾸지 않는다.');
     }
     if (cfg.customForbid && cfg.customForbid.trim()) {
       cfg.customForbid.split(/\n+/).forEach(function (line) {
@@ -2259,9 +2276,9 @@
     if (pro) {
       out.push('');
       out.push('[VARIATIONS — 같은 장면 3안]');
-      out.push('A. 구도 변주: ' + (SHOT_MAP[shot === '와이드 샷' ? '미디엄 샷' : '와이드 샷'] || '').split(',')[0] + '로 프레임을 잡고 여백을 늘린다.');
-      out.push('B. 조명 변주: ' + (LIGHT_MAP[light === '골든아워' ? '스튜디오 소프트박스' : '골든아워'] || '').split(',')[0] + '로 바꿔 분위기를 대비시킨다.');
-      out.push('C. 스타일 변주: ' + (STYLE_MAP[style === '실사 사진' ? '시네마틱' : '실사 사진'] || '').split(',')[0] + ' 매체로 같은 구도를 다시 만든다.');
+      out.push('A. 구도 변주: ' + (SHOT_MAP[shot === '와이드 샷' ? '미디엄 샷' : '와이드 샷'] || '').split(',')[0] + ' — 프레임을 바꾸고 여백을 달리한다.');
+      out.push('B. 조명 변주: ' + (LIGHT_MAP[light === '골든아워' ? '스튜디오 소프트박스' : '골든아워'] || '').split(',')[0] + ' — 명암 대비를 바꿔 분위기를 대비시킨다.');
+      out.push('C. 스타일 변주: ' + (STYLE_MAP[style === '실사 사진' ? '시네마틱' : '실사 사진'] || '').split(',')[0] + ' — 같은 구도로 매체만 바꾼다.');
       out.push('');
       out.push('[QUALITY RUBRIC — 생성 전 확인]');
       (task.rubric || []).forEach(function (r) { out.push('- ' + r); });
